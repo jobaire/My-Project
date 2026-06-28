@@ -53,6 +53,7 @@ import {
   createVersion,
   createVersionStep,
   deleteProduct,
+  deleteVersion,
   deleteVersionStep,
   fetchColorSizes,
   fetchProducts,
@@ -319,6 +320,16 @@ function RoutingTab({ productId, token, processes }) {
 
   useEffect(() => { loadSteps(activeVid) }, [activeVid, loadSteps])
 
+  const deleteVer = async (vid) => {
+    if (versions.length <= 1) return message.warning('Cannot delete the only version.')
+    try {
+      await deleteVersion(token, productId, vid)
+      const remaining = versions.filter((v) => v.id !== vid)
+      setVersions(remaining)
+      if (activeVid === vid) setActiveVid(remaining[0]?.id ?? null)
+    } catch (err) { message.error(err.message) }
+  }
+
   const addVersion = async () => {
     if (versions.length >= 5) return
     const name = `V${versions.length + 1}`
@@ -374,16 +385,31 @@ function RoutingTab({ productId, token, processes }) {
         {loadingV ? <Text type="secondary" style={{ fontSize: 11 }}>Loading…</Text> : (
           <>
             {versions.map((v) => (
-              <button key={v.id} onClick={() => setActiveVid(v.id)} style={{
-                padding: '3px 14px', borderRadius: 14, border: '1px solid',
-                fontSize: 12, cursor: 'pointer', transition: 'all 0.12s',
-                background: activeVid === v.id ? '#1e3a5f' : '#f0f4f8',
-                color: activeVid === v.id ? '#fff' : '#1e3a5f',
-                borderColor: activeVid === v.id ? '#1e3a5f' : '#d0d7de',
-                fontWeight: activeVid === v.id ? 600 : 400,
-              }}>
-                {v.name}
-              </button>
+              <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                <button onClick={() => setActiveVid(v.id)} style={{
+                  padding: '3px 10px 3px 14px', borderRadius: versions.length > 1 ? '14px 0 0 14px' : 14,
+                  border: '1px solid', borderRight: versions.length > 1 ? 'none' : undefined,
+                  fontSize: 12, cursor: 'pointer', transition: 'all 0.12s',
+                  background: activeVid === v.id ? '#1e3a5f' : '#f0f4f8',
+                  color: activeVid === v.id ? '#fff' : '#1e3a5f',
+                  borderColor: activeVid === v.id ? '#1e3a5f' : '#d0d7de',
+                  fontWeight: activeVid === v.id ? 600 : 400,
+                }}>
+                  {v.name}
+                </button>
+                {versions.length > 1 && (
+                  <button onClick={() => deleteVer(v.id)} style={{
+                    padding: '3px 7px', borderRadius: '0 14px 14px 0',
+                    border: '1px solid', fontSize: 10, cursor: 'pointer',
+                    background: activeVid === v.id ? '#1e3a5f' : '#f0f4f8',
+                    color: activeVid === v.id ? 'rgba(255,255,255,0.7)' : '#999',
+                    borderColor: activeVid === v.id ? '#1e3a5f' : '#d0d7de',
+                    lineHeight: 1,
+                  }}>
+                    ×
+                  </button>
+                )}
+              </div>
             ))}
             {versions.length < 5 && (
               <button onClick={addVersion} style={{
