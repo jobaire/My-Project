@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_roles (
     id      SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role    VARCHAR NOT NULL
+    role    VARCHAR NOT NULL,
+    UNIQUE (user_id, role)
 );
 
 CREATE TABLE IF NOT EXISTS module_permissions (
@@ -46,7 +47,23 @@ CREATE TABLE IF NOT EXISTS module_permissions (
 CREATE TABLE IF NOT EXISTS user_sub_tenants (
     id            SERIAL PRIMARY KEY,
     user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    sub_tenant_id INTEGER NOT NULL
+    sub_tenant_id INTEGER NOT NULL,
+    UNIQUE (user_id, sub_tenant_id)
+);
+
+CREATE TABLE IF NOT EXISTS tenant_roles (
+    id        SERIAL PRIMARY KEY,
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name      VARCHAR NOT NULL,
+    UNIQUE (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS user_views (
+    id       SERIAL PRIMARY KEY,
+    user_id  INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    view_key VARCHAR NOT NULL,
+    name     VARCHAR NOT NULL,
+    config   JSONB
 );
 
 CREATE TABLE IF NOT EXISTS refresh_tokens (
