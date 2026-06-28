@@ -19,7 +19,7 @@ from app.core.config import APP_NAME, FRONTEND_ORIGINS
 async def lifespan(app: FastAPI):
     from pathlib import Path
     from app.db.master import engine
-    sql = (Path(__file__).resolve().parents[2] / "migrations" / "master_init.sql").read_text()
+    sql = (Path(__file__).resolve().parents[1] / "migrations" / "master_init.sql").read_text()
     with engine.connect() as conn:
         conn.execute(text(sql))
         conn.commit()
