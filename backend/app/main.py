@@ -1,5 +1,6 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 import sentry_sdk
 from fastapi import FastAPI, Request
@@ -12,6 +13,15 @@ from app.core.limiter import limiter
 logger = logging.getLogger(__name__)
 from app.core.config import APP_NAME, FRONTEND_ORIGINS
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    from app.db.master import engine
+    from app.models.base import Base
+    from app.models import tenants, users  # noqa: F401 — registers models with Base
+    Base.metadata.create_all(bind=engine)
+    yield
+
 if os.getenv("SENTRY_DSN"):
     sentry_sdk.init(
         dsn=os.getenv("SENTRY_DSN"),
@@ -23,7 +33,7 @@ from app.middleware.subscription import subscription_middleware
 from app.middleware.tenant import tenant_middleware
 from app.routes import audit, auth, customers, dashboard, news, notifications, onboarding, orders, planning, platform, products, setup, users, views
 
-app = FastAPI(title=f"{APP_NAME} Backend")
+app = FastAPI(title=f"{APP_NAME} Backend", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 

@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.orm import relationship
 from app.models.base import Base
 
@@ -14,5 +14,7 @@ class Tenant(Base):
     address       = Column(String, nullable=True)
     phone         = Column(String, nullable=True)
     is_active     = Column(Boolean, nullable=False, default=True)
+    plan          = Column(String, nullable=True)
+    trial_ends_at = Column(DateTime(timezone=True), nullable=True)
 
     users = relationship("User", back_populates="tenant")
