@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 110">
+  <rect width="480" height="110" fill="#f2f2f2"/>
+  <text x="240" y="62" text-anchor="middle"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="52" font-weight="300" letter-spacing="4" fill="#111111">f<tspan fill="#00C48C">i</tspan>lam<tspan fill="#FF6B35">i</tspan>nto</text>
+  <text x="240" y="88" text-anchor="middle"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="10" font-weight="400" letter-spacing="5" fill="#aaaaaa">SUPPLY CHAIN OS</text>
+</svg>

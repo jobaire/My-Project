@@ -1,0 +1,6 @@
+; PgBouncer user list — one entry per DB user the app connects as.
+; Format: "username" "password"
+; For production, replace the plaintext password below with the md5 hash:
+;   echo -n "AppSecure2024!app_db" | md5sum   →  prefix result with "md5"
+;   e.g.  "app_db" "md5a1b2c3d4..."
+"app_db" "AppSecure2024!"

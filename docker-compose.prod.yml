@@ -1,0 +1,90 @@
+services:
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:18
+    container_name: filaminto-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_db
+      POSTGRES_PASSWORD: AppSecure2024!
+      POSTGRES_DB: platform_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_db -d platform_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # ── PgBouncer — connection pooler ──────────────────────────────────────────
+  pgbouncer:
+    image: bitnami/pgbouncer:latest
+    container_name: filaminto-pgbouncer
+    restart: unless-stopped
+    environment:
+      POSTGRESQL_HOST: postgres
+      POSTGRESQL_PORT: 5432
+      PGBOUNCER_AUTH_TYPE: md5
+    volumes:
+      - ./pgbouncer/pgbouncer.ini:/bitnami/pgbouncer/conf/pgbouncer.ini:ro
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  # ── Backend — Gunicorn + 4 Uvicorn workers ─────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: filaminto-backend
+    restart: unless-stopped
+    env_file:
+      - backend/.env
+    environment:
+      # Point both DB URLs at PgBouncer, not postgres directly
+      MASTER_DB_URL: postgresql+psycopg2://app_db:AppSecure2024!@pgbouncer:5432/platform_db
+      SHARED_DB_URL: postgresql+psycopg2://app_db:AppSecure2024!@pgbouncer:5432/tenants_db
+      ENVIRONMENT: production
+    depends_on:
+      pgbouncer:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+  # ── Frontend — React build served by Nginx ─────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        # API calls go to /api/ which Nginx proxies to the backend container
+        VITE_API_BASE_URL: /api
+    container_name: filaminto-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      # Uncomment for HTTPS after adding SSL certs to nginx/nginx.conf:
+      # - "443:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  postgres_data:

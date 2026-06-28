@@ -1,0 +1,120 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* ── Brand ────────────────────────────────── */
+  --c-primary:       #d96f22;
+  --c-teal:          #0b9e94;
+  --c-teal-dark:     #0b5e57;
+  --c-navy:          #1e3c4a;
+
+  /* ── Surfaces ─────────────────────────────── */
+  --c-bg:            #f6f1e8;
+  --c-surface:       #ffffff;
+  --c-surface-subtle:#f8fafc;
+  --c-sidebar:       #0d1b2a;
+
+  /* ── Text ─────────────────────────────────── */
+  --c-text:               #1f2933;
+  --c-text-secondary:     #64748b;
+  --c-text-placeholder:   #9baab5;
+
+  /* ── Borders ──────────────────────────────── */
+  --c-border:        rgba(31,41,51,0.12);
+  --c-border-strong: #c0d8e4;
+
+  /* ── Status ───────────────────────────────── */
+  --c-success: #16a34a;
+  --c-danger:  #dc2626;
+  --c-warning: #d97706;
+
+  /* ── Planning board (semantic) ────────────── */
+  --plan-confirmed:      #16a34a;
+  --plan-confirmed-bg:   #22c55e;
+  --plan-forecast:       #2563eb;
+  --plan-projection:     #0891b2;
+  --plan-under-proj:     #d97706;
+  --plan-today-bar:      rgba(220,38,38,0.75);
+  --plan-drag-indicator: rgba(11,158,148,0.75);
+  --plan-break-overlay:  rgba(15,23,42,0.14);
+  --plan-line-edit:      #f8fbfc;
+  --plan-line-readonly:  #f5f9fa;
+  --plan-unit-band:      rgba(180,210,225,0.12);
+  --plan-staging-header: #d5ede8;
+
+  /* ── Typography scale ─────────────────────── */
+  --fs-2xs:  10px;
+  --fs-xs:   11px;
+  --fs-sm:   12px;
+  --fs-base: 13px;
+  --fs-md:   14px;
+  --fs-lg:   16px;
+  --fs-xl:   18px;
+
+  --fw-normal:   400;
+  --fw-medium:   500;
+  --fw-semibold: 600;
+  --fw-bold:     700;
+
+  --ls-tight:  -0.01em;
+  --ls-normal:  0;
+  --ls-wide:    0.05em;
+  --ls-wider:   0.08em;
+
+  /* ── Radius ───────────────────────────────── */
+  --r-sm:   6px;
+  --r-md:   8px;
+  --r-lg:   12px;
+  --r-pill: 999px;
+
+  /* ── Shadows ──────────────────────────────── */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md:    0 4px 12px rgba(0,0,0,0.10);
+  --shadow-panel: 4px 0 10px rgba(0,0,0,0.10);
+
+  /* ── Base ─────────────────────────────────── */
+  font-family: 'Manrope', system-ui, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: var(--c-text);
+  background: var(--c-bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; }
+button, input { font: inherit; }
+p { margin: 0; }
+#root { min-height: 100vh; }
+
+/* ── Typography utilities ─────────────────────── */
+
+.micro-label {
+  font-size: var(--fs-2xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--c-text-secondary);
+  line-height: 1.4;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: var(--ls-wide);
+}
+
+.section-label {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wider);
+  color: var(--c-text-secondary);
+}

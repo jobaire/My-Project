@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 200">
+
+  <text
+    x="310"
+    y="110"
+    text-anchor="middle"
+    textLength="620"
+    lengthAdjust="spacingAndGlyphs"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="110"
+    font-weight="800"
+    fill="#ffffff">f<tspan fill="#00C48C">i</tspan>lam<tspan fill="#FF6B35">i</tspan>nto</text>
+
+  <text
+    x="310"
+    y="168"
+    text-anchor="middle"
+    font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
+    font-size="28"
+    font-weight="600"
+    letter-spacing="8"
+    fill="#ffffff">SUPPLY CHAIN OS</text>
+
+</svg>
