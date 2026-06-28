@@ -6,6 +6,7 @@ import sentry_sdk
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from app.core.limiter import limiter
@@ -16,10 +17,12 @@ from app.core.config import APP_NAME, FRONTEND_ORIGINS
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    from pathlib import Path
     from app.db.master import engine
-    from app.models.base import Base
-    from app.models import tenants, users  # noqa: F401 — registers models with Base
-    Base.metadata.create_all(bind=engine)
+    sql = (Path(__file__).resolve().parents[2] / "migrations" / "master_init.sql").read_text()
+    with engine.connect() as conn:
+        conn.execute(text(sql))
+        conn.commit()
     yield
 
 if os.getenv("SENTRY_DSN"):
