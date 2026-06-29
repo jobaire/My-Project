@@ -135,7 +135,9 @@ export default function OrderBlock({
       )}
       <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 3 }}>
         {hasLC && (
-          <span style={{ fontSize: 20, fontWeight: 900, color: '#9333ea', lineHeight: 1, flexShrink: 0, display: 'inline-block', transform: 'scaleX(-1)', marginRight: 1 }}>L</span>
+          <svg width="11" height="13" viewBox="0 0 11 13" style={{ flexShrink: 0, marginRight: 2, display: 'block' }}>
+            <polygon points="11,0 11,13 0,13" fill="none" stroke="#9333ea" strokeWidth="1.5" strokeLinejoin="round" />
+          </svg>
         )}
         <Text style={{ fontSize: 12, fontWeight: 600, color: labelColor, lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>
           {sched.order_name} :: {String(sched.line_number ?? 1).padStart(2, '0')}
