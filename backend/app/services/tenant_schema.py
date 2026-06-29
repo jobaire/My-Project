@@ -26,6 +26,7 @@ _TENANT_SQL_FILES = [
     "tenant_planning_subtotal_dedup.sql",
     "tenant_planning_schedule_v2.sql",
     "tenant_planning_schedule_split.sql",
+    "tenant_planning_learning_curves.sql",
     "add_performance_indexes.sql",
 ]
 
