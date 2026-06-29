@@ -1435,13 +1435,13 @@ def get_unscheduled(request: Request):
                 o.customer_po,
                 cu.name                                                       AS customer_name,
                 p.name                                                        AS product_name,
-                o.version_id,
+                ol.version_id,
                 COALESCE((
                     SELECT svs.work_content
                     FROM style_version_steps svs
                     JOIN processes pr
                       ON LOWER(TRIM(pr.name)) = LOWER(TRIM(svs.process_name))
-                    WHERE svs.version_id = o.version_id
+                    WHERE svs.version_id = ol.version_id
                       AND pr.planned = TRUE
                       AND svs.work_content ~ '^[0-9]+(\.[0-9]+)?$'
                     ORDER BY svs.sequence
@@ -1460,7 +1460,7 @@ def get_unscheduled(request: Request):
                 SELECT order_id FROM order_schedule WHERE order_line_id IS NULL
             )
             GROUP BY ol.id, ol.order_id, ol.line_number, ol.delivery_qty, ol.delivery_date,
-                     c.name, o.name, o.status, o.customer_po, cu.name, p.name, o.version_id
+                     c.name, o.name, o.status, o.customer_po, cu.name, p.name, ol.version_id
             HAVING (ol.delivery_qty - COALESCE(SUM(os.planned_qty), 0)) > 0
             ORDER BY o.status, cu.name, o.name, ol.line_number
         """),
