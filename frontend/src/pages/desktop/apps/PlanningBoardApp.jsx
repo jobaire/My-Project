@@ -261,11 +261,12 @@ export default function PlanningBoardApp({ session }) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [l, s, u, pu] = await Promise.all([
+      const [l, s, u, pu, lc] = await Promise.all([
         apiFetch('/planning/lines', token),
         apiFetch('/planning/schedule', token),
         apiFetch('/planning/unscheduled', token),
         apiFetch('/planning/plan-units', token),
+        apiFetch('/planning/learning-curves', token),
       ])
       setLines(l.filter(x => x.is_active))
       setSchedules(s)
@@ -274,10 +275,10 @@ export default function PlanningBoardApp({ session }) {
       setSchedFuture([])
       setUnscheduled(u)
       setPlanUnits(pu)
+      setLearningCurves(lc)
       return s
     } catch { message.error('Failed to load planning data') }
     finally { setLoading(false) }
-    apiFetch('/planning/learning-curves', token).then(setLearningCurves).catch(() => {})
   }, [token])
 
   useEffect(() => { load() }, [load])
@@ -353,6 +354,7 @@ export default function PlanningBoardApp({ session }) {
 
   // During drag, show dragged strip's data — period/duration update live as position changes
   const displaySched = useMemo(() => {
+    const lcName = (id) => learningCurves?.find(lc => lc.id === id)?.name ?? null
     if (activeItem?.type === 'scheduled' && activeItem.sched) {
       const s      = activeItem.sched
       const start  = dragLiveStart || s.planned_start
@@ -398,6 +400,7 @@ export default function PlanningBoardApp({ session }) {
         line_id:        lineId,
         line_name:      line?.name || s.line_name,
         daily_capacity: dailyCap,
+        lc_name:        lcName(s.learning_curve_id),
       }
     }
     // Hover (non-drag): pin locks the panel; hover overrides only when nothing is pinned.
@@ -410,12 +413,12 @@ export default function PlanningBoardApp({ session }) {
           const lineMp = line.machines_count ?? 1
           const mp = Math.min(source.manpower != null ? source.manpower : lineMp, lineMp)
           const dailyCap = (mp * parseFloat(line.working_hours) * 60 * (parseFloat(line.efficiency_pct) / 100)) / smv
-          return { ...source, daily_capacity: dailyCap }
+          return { ...source, daily_capacity: dailyCap, lc_name: lcName(source.learning_curve_id) }
         }
       }
     }
-    return source
-  }, [activeItem, hoveredSched, pinnedSched, dragLiveStart, dragOverLineId, lines, boardShiftHours, nonWorkingDays])
+    return source ? { ...source, lc_name: lcName(source.learning_curve_id) } : source
+  }, [activeItem, hoveredSched, pinnedSched, dragLiveStart, dragOverLineId, lines, boardShiftHours, nonWorkingDays, learningCurves])
 
   const schedByLine = useMemo(() => {
     const m = {}
@@ -486,16 +489,40 @@ export default function PlanningBoardApp({ session }) {
     } catch (e) { message.error(e.message) }
   }
 
-  const handleLCSave = async () => {
+  const _lcEndStr = (sched, lcId) => {
+    const line = lines.find(l => l.id === sched.line_id)
+    const sh = line ? Math.max(1, parseFloat(line.working_hours)) : (boardShiftHours ?? 8)
+    const ss = boardShiftStart ?? 0
+    const nw = nonWorkingDays[sched.line_id] || new Set()
+    const preset = lcId ? learningCurves?.find(lc => lc.id === lcId) : null
+    const stages = preset?.stages ?? null
+    let end
+    if (stages?.length && sched.daily_capacity > 0) {
+      end = calcEndTimeLC(new Date(sched.planned_start), sched.planned_qty, sched.daily_capacity, ss, sh, nw, stages)
+    } else {
+      const dur = sched.daily_capacity > 0 ? sched.planned_qty / sched.daily_capacity : 1
+      end = calcEndTime(new Date(sched.planned_start), dur * sh, ss, sh, nw)
+    }
+    return `${toISO(end)}T${String(end.getHours()).padStart(2,'0')}:${String(end.getMinutes()).padStart(2,'0')}:00`
+  }
+
+  const handleLCSave = () => {
     if (!lcModal) return
-    try {
-      await apiFetch(`/planning/schedule/${lcModal.sched.id}`, token, {
-        method: 'PATCH',
-        body: JSON.stringify({ learning_curve_id: lcValue || null }),
-      })
-      await load()
-      setLcModal(null)
-    } catch (e) { message.error(e.message) }
+    const lcId = lcValue === 'none' ? null : lcValue
+    const newEnd = _lcEndStr(lcModal.sched, lcId)
+    setSchedules(prev => prev.map(s => s.id === lcModal.sched.id
+      ? { ...s, learning_curve_id: lcId, planned_end: newEnd }
+      : s
+    ))
+    setLcModal(null)
+  }
+
+  const handleRemoveLC = (sched) => {
+    const newEnd = _lcEndStr(sched, null)
+    setSchedules(prev => prev.map(s => s.id === sched.id
+      ? { ...s, learning_curve_id: null, planned_end: newEnd }
+      : s
+    ))
   }
 
   const handleWHOverrideSave = async () => {
@@ -544,16 +571,18 @@ export default function PlanningBoardApp({ session }) {
           orig.line_id       !== s.line_id       ||
           orig.planned_start !== s.planned_start ||
           orig.planned_qty   !== s.planned_qty   ||
-          Boolean(orig.keep_separate) !== Boolean(s.keep_separate)
+          Boolean(orig.keep_separate) !== Boolean(s.keep_separate) ||
+          (orig.learning_curve_id ?? null) !== (s.learning_curve_id ?? null)
         )
       }).map(s => ({
-        id:            s.id,
-        line_id:       s.line_id,
-        planned_start: s.planned_start,
-        planned_end:   s.planned_end ?? null,
-        planned_qty:   s.planned_qty,
-        keep_separate: s.keep_separate ?? false,
-        manpower:      s.manpower ?? null,
+        id:                s.id,
+        line_id:           s.line_id,
+        planned_start:     s.planned_start,
+        planned_end:       s.planned_end ?? null,
+        planned_qty:       s.planned_qty,
+        keep_separate:     s.keep_separate ?? false,
+        manpower:          s.manpower ?? null,
+        learning_curve_id: s.learning_curve_id ?? null,
       }))
 
       if (!deletes.length && !creates.length && !updates.length) return
@@ -586,7 +615,7 @@ export default function PlanningBoardApp({ session }) {
     const savedMap = new Map(savedScheds.map(s => [s.id, s]))
     return schedules.some(s => {
       const orig = savedMap.get(s.id)
-      return !orig || orig.line_id !== s.line_id || orig.planned_start !== s.planned_start || orig.planned_qty !== s.planned_qty || Boolean(orig.keep_separate) !== Boolean(s.keep_separate)
+      return !orig || orig.line_id !== s.line_id || orig.planned_start !== s.planned_start || orig.planned_qty !== s.planned_qty || Boolean(orig.keep_separate) !== Boolean(s.keep_separate) || (orig.learning_curve_id ?? null) !== (s.learning_curve_id ?? null)
     })
   }, [schedules, savedScheds])
 
@@ -1513,7 +1542,7 @@ const newStart    = preciseStart(dateStr)
                             if (effectiveEnd < viewStart || new Date(sched.planned_start) > viewEnd) return null
                             if (displayLeft > totalGridWidth || displayLeft + w < 0) return null
                             schedDisplayWidthRef.current[sched.id] = w
-                            return <OrderBlock key={sched.id} sched={sched} viewStart={viewStart} zoom={zoom} onRemove={removeSchedule} onHover={s => setHoveredSched({ ...s, _effectiveEnd: toLocalDT(effectiveEnd) })} onOpenPanel={(type, s) => setDetailPanel({ type, sched: s })} onManpower={s => { setMpModal({ sched: s }); setMpValue(s.manpower ?? null) }} onAssignLC={s => { setLcModal({ sched: s }); setLcValue(s.learning_curve_id ?? null) }} onOverrideLineWH={s => { setWhModal({ sched: s }); setWhOffset(0); setWhRange(null) }} onSplit={doSplit} onSplitModal={openSplitModal} onToggleKeepSeparate={toggleKeepSeparate} hasSiblings={sched.order_line_id ? schedules.filter(ss => ss.order_line_id === sched.order_line_id).length > 1 : schedules.filter(ss => !ss.order_line_id && ss.order_id === sched.order_id).length > 1} rowHeight={rowHeight} laneTop={lt} laneHeight={blockH} displayWidth={w} displayLeft={displayLeft} onPin={s => s ? setPinnedSched({ ...s, _effectiveEnd: toLocalDT(effectiveEnd) }) : setPinnedSched(null)} pinnedSchedId={pinnedSched?.id ?? null} isSelected={selectedSchedIds.includes(sched.id)} selectionRank={selectedSchedIds.indexOf(sched.id) + 1} onCtrlClick={handleStripCtrlClick} hideDuringDrag={!!(activeItem?.type === 'scheduled' && selectedSchedIds.includes(activeItem.sched?.id) && selectedSchedIds.length > 1 && selectedSchedIds.includes(sched.id) && sched.id !== activeItem.sched?.id)} />
+                            return <OrderBlock key={sched.id} sched={sched} viewStart={viewStart} zoom={zoom} onRemove={removeSchedule} onHover={s => setHoveredSched({ ...s, _effectiveEnd: toLocalDT(effectiveEnd) })} onOpenPanel={(type, s) => setDetailPanel({ type, sched: s })} onManpower={s => { setMpModal({ sched: s }); setMpValue(s.manpower ?? null) }} onAssignLC={s => { setLcModal({ sched: s }); setLcValue(s.learning_curve_id ?? 'none') }} onRemoveLC={handleRemoveLC} onOverrideLineWH={s => { setWhModal({ sched: s }); setWhOffset(0); setWhRange(null) }} onSplit={doSplit} onSplitModal={openSplitModal} onToggleKeepSeparate={toggleKeepSeparate} hasSiblings={sched.order_line_id ? schedules.filter(ss => ss.order_line_id === sched.order_line_id).length > 1 : schedules.filter(ss => !ss.order_line_id && ss.order_id === sched.order_id).length > 1} rowHeight={rowHeight} laneTop={lt} laneHeight={blockH} displayWidth={w} displayLeft={displayLeft} onPin={s => s ? setPinnedSched({ ...s, _effectiveEnd: toLocalDT(effectiveEnd) }) : setPinnedSched(null)} pinnedSchedId={pinnedSched?.id ?? null} isSelected={selectedSchedIds.includes(sched.id)} selectionRank={selectedSchedIds.indexOf(sched.id) + 1} onCtrlClick={handleStripCtrlClick} hideDuringDrag={!!(activeItem?.type === 'scheduled' && selectedSchedIds.includes(activeItem.sched?.id) && selectedSchedIds.length > 1 && selectedSchedIds.includes(sched.id) && sched.id !== activeItem.sched?.id)} />
                           })
                         })()}
                       </div>
@@ -1779,7 +1808,7 @@ const newStart    = preciseStart(dateStr)
         </div>
         {/* Content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <HoverInfoPanel sched={displaySched} nonWorkingSet={nonWorkingDays[displaySched?.line_id] ?? new Set()} visibleFields={infoBarVisible} />
+          <HoverInfoPanel sched={displaySched} nonWorkingSet={nonWorkingDays[displaySched?.line_id] ?? new Set()} visibleFields={infoBarVisible} boardShiftHours={boardShiftHours} boardShiftStart={boardShiftStart} />
         </div>
       </div>
 
@@ -1874,6 +1903,7 @@ const newStart    = preciseStart(dateStr)
             allowClear
             style={{ width: '100%' }}
             options={[
+              { value: 'none', label: 'None (100% efficiency)' },
               ...learningCurves.map(lc => ({
                 value: lc.id,
                 label: `${lc.name} (${lc.stages?.length ?? 0} stages)`,

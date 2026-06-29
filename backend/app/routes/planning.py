@@ -908,7 +908,7 @@ def bulk_save_schedules(payload: BulkSchedulePayload, request: Request, backgrou
         if not existing:
             continue
         _check_unit_permission(db, item.line_id, actor)
-        lc_id = existing["learning_curve_id"]
+        lc_id = item.learning_curve_id if "learning_curve_id" in (item.model_fields_set or set()) else existing.get("learning_curve_id")
         smv = float(existing["smv"])
         # Resolve line params; use item.manpower if provided, otherwise existing, capped at line machines_count
         if item.line_id != existing["line_id"]:
@@ -938,12 +938,13 @@ def bulk_save_schedules(payload: BulkSchedulePayload, request: Request, backgrou
             text("""
                 UPDATE order_schedule
                 SET line_id=:lid, planned_start=:ps, planned_end=:pe,
-                    planned_qty=:pq, keep_separate=:ks, manpower=:mp
+                    planned_qty=:pq, keep_separate=:ks, manpower=:mp,
+                    learning_curve_id=:lc
                 WHERE id=:id
             """),
             {"lid": item.line_id, "ps": item.planned_start, "pe": planned_end,
              "pq": item.planned_qty, "ks": item.keep_separate,
-             "mp": raw_mp, "id": item.id},
+             "mp": raw_mp, "lc": lc_id, "id": item.id},
         )
         background_tasks.add_task(_generate_hour_breakdown_bg, tenant_id, item.id, item.planned_start, planned_end, item.planned_qty)
         results["updated"].append({
@@ -1018,7 +1019,7 @@ def update_schedule(schedule_id: int, payload: ScheduleUpdate, request: Request,
     notes         = payload.notes if payload.notes is not None else existing["notes"]
     # manpower: if payload explicitly sends a value (including null), use it; if absent, keep existing
     mp_override   = payload.manpower if "manpower" in (payload.model_fields_set or set()) else existing.get("manpower")
-    lc_id         = payload.learning_curve_id if payload.learning_curve_id is not None else existing.get("learning_curve_id")
+    lc_id         = payload.learning_curve_id if "learning_curve_id" in (payload.model_fields_set or set()) else existing.get("learning_curve_id")
 
     line = _get_line_or_404(db, line_id)
     _check_unit_permission(db, line_id, _actor(request))

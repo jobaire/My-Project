@@ -41,6 +41,7 @@ export const INFO_FIELD_DEFS = [
   { key: 'duration',         section: 'plan',     label: 'Duration',      wide: false, render: (_, x) => x.workDays != null ? `${x.workDays.toFixed(2)} WD` : '—',
                                                                            sub:   (_, x) => x.calDays != null ? `${x.calDays.toFixed(2)} CD` : null },
   { key: 'daily_capacity',   section: 'plan',     label: 'Daily Cap',     wide: false, render: (s)    => s.daily_capacity != null ? `${Math.round(s.daily_capacity)} pcs/day` : '—' },
+  { key: 'learning_curve',   section: 'plan',     label: 'Lrn. Curve',    wide: false, render: (s)    => s.lc_name || '—' },
 ]
 
 export const INFO_BAR_DEFAULT_KEYS = [
@@ -107,7 +108,7 @@ function InfoSection({ fieldKey, label, value, sub, wide, accent, colW, onResize
   )
 }
 
-export default function HoverInfoPanel({ sched, nonWorkingSet, visibleFields }) {
+export default function HoverInfoPanel({ sched, nonWorkingSet, visibleFields, boardShiftHours, boardShiftStart }) {
   const [colWidths, setColWidths] = useState(loadColWidths)
 
   const startResize = useCallback((key, startW, e) => {
@@ -132,9 +133,35 @@ export default function HoverInfoPanel({ sched, nonWorkingSet, visibleFields }) 
   const colW = (key, wide) => colWidths[key] ?? (wide ? DEFAULT_W.wide : DEFAULT_W.narrow)
 
   const endForDisplay = sched ? (sched.planned_end || sched._effectiveEnd || null) : null
-  const workDays = sched && sched.planned_qty > 0 && sched.daily_capacity > 0
-    ? sched.planned_qty / sched.daily_capacity
-    : null
+
+  const workDays = useMemo(() => {
+    if (!sched?.planned_start || !endForDisplay || !boardShiftHours) {
+      return sched?.planned_qty > 0 && sched?.daily_capacity > 0
+        ? sched.planned_qty / sched.daily_capacity : null
+    }
+    const sh = boardShiftHours
+    const ss = boardShiftStart ?? 8
+    const start = new Date(sched.planned_start)
+    const end   = new Date(endForDisplay)
+    if (end <= start) return sched.planned_qty > 0 && sched.daily_capacity > 0
+      ? sched.planned_qty / sched.daily_capacity : 0
+    const nwSet = nonWorkingSet || new Set()
+    let workHours = 0
+    const cur = new Date(start); cur.setHours(0, 0, 0, 0)
+    while (cur < end) {
+      if (!nwSet.has(toISO(cur))) {
+        const dayStart = new Date(cur); dayStart.setHours(ss, 0, 0, 0)
+        const dayEnd   = new Date(cur); dayEnd.setHours(ss + sh, 0, 0, 0)
+        const oStart = Math.max(start.getTime(), dayStart.getTime())
+        const oEnd   = Math.min(end.getTime(),   dayEnd.getTime())
+        if (oEnd > oStart) workHours += (oEnd - oStart) / 3600000
+      }
+      cur.setDate(cur.getDate() + 1)
+    }
+    return workHours > 0 ? workHours / sh
+      : (sched.planned_qty > 0 && sched.daily_capacity > 0 ? sched.planned_qty / sched.daily_capacity : null)
+  }, [sched, endForDisplay, nonWorkingSet, boardShiftHours, boardShiftStart])
+
   const calDays = useMemo(() => {
     if (!sched || workDays == null || !sched.planned_start || !endForDisplay) return null
     const startMid = new Date(sched.planned_start); startMid.setHours(0, 0, 0, 0)

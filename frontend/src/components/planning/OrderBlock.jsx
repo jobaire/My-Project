@@ -14,7 +14,6 @@ import { blockLeft, blockWidth } from '../../utils/planningUtils'
 const { Text } = Typography
 
 const STRIP_SHADOW = '0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.05)'
-const STRIP_BG = `repeating-linear-gradient(135deg, transparent, transparent 3px, rgba(11,158,148,0.04) 3px, rgba(11,158,148,0.04) 6px), #fff`
 
 const ROW_HEIGHT_DEFAULT = 50
 
@@ -58,6 +57,35 @@ export default function OrderBlock({
 
   const progress = sched.order_qty > 0 ? Math.min(1, sched.planned_qty / sched.order_qty) : null
 
+  const isLate = !!sched.delivery_date && !!(sched._effectiveEnd || sched.planned_end) &&
+    new Date(sched._effectiveEnd || sched.planned_end) > new Date(sched.delivery_date)
+  const isTnA  = !!sched.has_tna_issue
+  const hasLC  = !!sched.learning_curve_id
+
+  let stripBg    = '#fff'
+  let borderLeft = '3px solid var(--c-teal)'
+  let borderEdge = 'rgba(11,158,148,0.35)'
+  let labelColor = 'var(--c-navy)'
+
+  if (isLate && isTnA) {
+    stripBg    = 'repeating-linear-gradient(135deg, #f87171, #f87171 8px, #fcd34d 8px, #fcd34d 16px)'
+    borderLeft = '3px solid transparent'
+    borderEdge = 'rgba(220,38,38,0.5)'
+    labelColor = '#7f1d1d'
+  } else if (isLate) {
+    stripBg    = '#f87171'
+    borderLeft = '3px solid #dc2626'
+    borderEdge = 'rgba(220,38,38,0.6)'
+    labelColor = '#7f1d1d'
+  } else if (isTnA) {
+    stripBg    = '#fcd34d'
+    borderLeft = '3px solid #d97706'
+    borderEdge = 'rgba(217,119,6,0.6)'
+    labelColor = '#78350f'
+  }
+
+  const hoverRing = isLate ? 'rgba(220,38,38,0.45)' : isTnA ? 'rgba(217,119,6,0.45)' : 'rgba(11,158,148,0.45)'
+
   const block = (
     <div
       ref={setNodeRef} {...listeners} {...attributes}
@@ -67,7 +95,7 @@ export default function OrderBlock({
         if (!isDragging && onHover) onHover(sched)
         if (!isDragging) {
           e.currentTarget.style.transform = 'translateY(-1px)'
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12), 0 0 0 2px rgba(11,158,148,0.45)'
+          e.currentTarget.style.boxShadow = `0 4px 12px rgba(0,0,0,0.12), 0 0 0 2px ${hoverRing}`
         }
       }}
       onMouseLeave={(e) => {
@@ -85,9 +113,9 @@ export default function OrderBlock({
         top: isOverlay ? undefined : (laneTop ?? Math.round(rowHeight * 0.25)),
         width,
         height: stripH,
-        background: STRIP_BG,
-        border: '1px solid rgba(11,158,148,0.35)',
-        borderLeft: '3px solid var(--c-teal)',
+        background: stripBg,
+        border: `1px solid ${borderEdge}`,
+        borderLeft,
         borderRadius: 'var(--r-sm)',
         padding: '0 5px 0 6px',
         cursor: isDragging ? 'grabbing' : 'grab',
@@ -102,8 +130,14 @@ export default function OrderBlock({
         outlineOffset: isSelected ? 1 : 0,
       }}
     >
+      {isLate && isTnA && (
+        <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, background: 'repeating-linear-gradient(180deg, #dc2626 0px, #dc2626 4px, #d97706 4px, #d97706 8px)', borderRadius: 'var(--r-sm) 0 0 var(--r-sm)', pointerEvents: 'none' }} />
+      )}
       <div style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, gap: 3 }}>
-        <Text style={{ fontSize: 12, fontWeight: 600, color: 'var(--c-navy)', lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>
+        {hasLC && (
+          <span style={{ fontSize: 20, fontWeight: 900, color: '#9333ea', lineHeight: 1, flexShrink: 0, display: 'inline-block', transform: 'scaleX(-1)', marginRight: 1 }}>L</span>
+        )}
+        <Text style={{ fontSize: 12, fontWeight: 600, color: labelColor, lineHeight: 1.2, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0, flex: 1 }}>
           {sched.order_name} :: {String(sched.line_number ?? 1).padStart(2, '0')}
         </Text>
         {pinnedSchedId === sched.id && (
