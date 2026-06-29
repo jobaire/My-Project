@@ -1443,7 +1443,6 @@ def get_unscheduled(request: Request):
                       ON LOWER(TRIM(pr.name)) = LOWER(TRIM(svs.process_name))
                     WHERE svs.version_id = o.version_id
                       AND pr.planned = TRUE
-                      AND LOWER(pr.name) LIKE '%sew%'
                       AND svs.work_content ~ '^[0-9]+(\.[0-9]+)?$'
                     ORDER BY svs.sequence
                     LIMIT 1
