@@ -507,10 +507,8 @@ def _recalc_schedules_for_line(db, line_id: int, from_date: str, to_date: str):
     non_working = _get_non_working_set_for_line(db, line_id)
 
     scheds = db.execute(
-        text("""SELECT os.*, s.smv_seconds / 60.0 AS smv_min
+        text("""SELECT os.*, os.smv AS smv_min
                 FROM order_schedule os
-                JOIN orders o ON os.order_id = o.id
-                JOIN styles s ON o.style_id = s.id
                 WHERE os.line_id = :lid
                   AND os.planned_start::date <= :to_date::date
                   AND os.planned_end::date   >= :from_date::date"""),
@@ -782,7 +780,8 @@ def get_schedule(request: Request,
         text(f"""
             SELECT os.*, o.name AS order_name, o.status AS order_status,
                    o.customer_id, cu.name AS customer_name, cu.customer_group,
-                   o.product_id, p.name AS product_name,
+                   COALESCE(o.product_id, ol.product_id) AS product_id,
+                   COALESCE(p.name, p2.name) AS product_name,
                    pl.name AS line_name, pl.machines_count, pl.efficiency_pct,
                    COALESCE(fc.shift_hours, pl.working_hours) AS working_hours,
                    ol.delivery_date, ol.line_number, ol.delivery_qty AS order_qty,
@@ -790,13 +789,14 @@ def get_schedule(request: Request,
             FROM order_schedule os
             JOIN orders o ON o.id = os.order_id
             LEFT JOIN customers cu ON cu.id = o.customer_id
-            LEFT JOIN products p ON p.id = o.product_id
             JOIN production_lines pl ON pl.id = os.line_id
             LEFT JOIN factory_calendars fc ON fc.id = pl.calendar_id
             LEFT JOIN order_lines ol ON ol.id = COALESCE(
                 os.order_line_id,
                 (SELECT id FROM order_lines WHERE order_id = os.order_id ORDER BY line_number LIMIT 1)
             )
+            LEFT JOIN products p  ON p.id  = o.product_id
+            LEFT JOIN products p2 ON p2.id = ol.product_id
             LEFT JOIN colors co ON co.id = ol.color_id
             {where}
             ORDER BY os.planned_start, pl.display_order
@@ -1434,16 +1434,16 @@ def get_unscheduled(request: Request):
                 o.status,
                 o.customer_po,
                 cu.name                                                       AS customer_name,
-                p.name                                                        AS product_name,
+                COALESCE(p.name, p2.name)                                     AS product_name,
                 ol.version_id,
                 COALESCE((
                     SELECT svs.work_content
                     FROM style_version_steps svs
                     JOIN processes pr
                       ON LOWER(TRIM(pr.name)) = LOWER(TRIM(svs.process_name))
-                    WHERE svs.version_id = ol.version_id
+                    WHERE svs.version_id = COALESCE(ol.version_id, o.version_id)
                       AND pr.planned = TRUE
-                      AND svs.work_content ~ '^[0-9]+(\.[0-9]+)?$'
+                      AND svs.work_content ~ '^[0-9]+(\\.[0-9]+)?$'
                     ORDER BY svs.sequence
                     LIMIT 1
                 ), NULL)                                                       AS calculated_smv,
@@ -1453,14 +1453,16 @@ def get_unscheduled(request: Request):
             FROM order_lines ol
             JOIN orders o ON o.id = ol.order_id
             LEFT JOIN customers cu ON cu.id = o.customer_id
-            LEFT JOIN products p ON p.id = o.product_id
+            LEFT JOIN products p  ON p.id  = o.product_id
+            LEFT JOIN products p2 ON p2.id = ol.product_id
             LEFT JOIN colors c ON c.id = ol.color_id
             LEFT JOIN order_schedule os ON os.order_line_id = ol.id
             WHERE ol.order_id NOT IN (
                 SELECT order_id FROM order_schedule WHERE order_line_id IS NULL
             )
             GROUP BY ol.id, ol.order_id, ol.line_number, ol.delivery_qty, ol.delivery_date,
-                     c.name, o.name, o.status, o.customer_po, cu.name, p.name, ol.version_id
+                     c.name, o.name, o.status, o.customer_po, cu.name, p.name, p2.name,
+                     ol.version_id, o.version_id
             HAVING (ol.delivery_qty - COALESCE(SUM(os.planned_qty), 0)) > 0
             ORDER BY o.status, cu.name, o.name, ol.line_number
         """),

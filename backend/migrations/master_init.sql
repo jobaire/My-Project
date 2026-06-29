@@ -55,7 +55,17 @@ CREATE TABLE IF NOT EXISTS tenant_roles (
     id        SERIAL PRIMARY KEY,
     tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name      VARCHAR NOT NULL,
+    label     VARCHAR,
+    is_system BOOLEAN NOT NULL DEFAULT false,
     UNIQUE (tenant_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS sub_tenants (
+    id        SERIAL PRIMARY KEY,
+    tenant_id INTEGER NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    name      VARCHAR NOT NULL,
+    code      VARCHAR,
+    is_active BOOLEAN NOT NULL DEFAULT true
 );
 
 CREATE TABLE IF NOT EXISTS user_views (

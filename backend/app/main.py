@@ -120,14 +120,16 @@ async def conditional_auth_middleware(request: Request, call_next):
         return await call_next(request)
     return await auth_middleware(request, call_next)
 
-app.add_middleware(
-    CORSMiddleware,
+_cors_kwargs = dict(
     allow_origins=FRONTEND_ORIGINS,
-    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1):\d+$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+if os.getenv("ENVIRONMENT", "production") == "development":
+    _cors_kwargs["allow_origin_regex"] = r"^http://(localhost|127\.0\.0\.1):\d+$"
+
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 app.include_router(auth.router,       prefix="/auth",       tags=["auth"])
 app.include_router(onboarding.router, prefix="/onboarding", tags=["onboarding"])

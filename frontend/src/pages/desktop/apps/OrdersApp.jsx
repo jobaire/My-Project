@@ -197,9 +197,8 @@ function LineModal({ open, onClose, onSaved, token, orderId, editLine, allColors
             children: (
               <Form form={form} layout="vertical" onFinish={handleFinish} style={{ marginTop: 4 }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <Form.Item name="product_id" label="Style" style={{ marginBottom: 8, gridColumn: '1 / -1' }}>
+                  <Form.Item name="product_id" label="Style" rules={[{ required: true, message: 'Style is required' }]} style={{ marginBottom: 8, gridColumn: '1 / -1' }}>
                     <Select
-                      allowClear
                       showSearch
                       optionFilterProp="label"
                       placeholder="Select style"
@@ -208,9 +207,8 @@ function LineModal({ open, onClose, onSaved, token, orderId, editLine, allColors
                       onChange={() => form.setFieldsValue({ version_id: undefined, color_id: undefined })}
                     />
                   </Form.Item>
-                  <Form.Item name="version_id" label="Version" style={{ marginBottom: 8 }}>
+                  <Form.Item name="version_id" label="Version" rules={[{ required: true, message: 'Version is required' }]} style={{ marginBottom: 8 }}>
                     <Select
-                      allowClear
                       showSearch
                       optionFilterProp="label"
                       placeholder="Select version"

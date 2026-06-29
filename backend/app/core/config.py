@@ -9,6 +9,9 @@ SUPER_ADMIN_EMAIL = os.getenv("SUPER_ADMIN_EMAIL", "admin@filaminto.com")
 MASTER_DB_URL = os.getenv("MASTER_DB_URL")
 SHARED_DB_URL = os.getenv("SHARED_DB_URL", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "changeme")
+if JWT_SECRET == "changeme":
+    import warnings
+    warnings.warn("JWT_SECRET is using the insecure default 'changeme'. Set a strong secret in production.", stacklevel=1)
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "2"))
@@ -33,3 +36,5 @@ APP_URL            = os.getenv("APP_URL", "http://127.0.0.1:5173")
 
 if not MASTER_DB_URL:
     raise ValueError("MASTER_DB_URL is not set. Check your .env file.")
+if not SHARED_DB_URL:
+    raise ValueError("SHARED_DB_URL is not set. Check your .env file.")

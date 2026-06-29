@@ -90,7 +90,7 @@ def _sub_company_filter(request) -> tuple[str, dict]:
         return "", {}
     keys = [f"_sc{i}" for i in range(len(sc_ids))]
     placeholders = ", ".join(f":{k}" for k in keys)
-    frag = f"(o.sub_tenant_id IS NULL OR o.sub_tenant_id IN ({placeholders}))"
+    frag = f"(o.sub_company_id IS NULL OR o.sub_company_id IN ({placeholders}))"
     return frag, dict(zip(keys, sc_ids))
 
 

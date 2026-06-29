@@ -138,6 +138,11 @@ CREATE TABLE IF NOT EXISTS processes (
     planned BOOLEAN NOT NULL DEFAULT FALSE,
     update_by_size BOOLEAN NOT NULL DEFAULT FALSE
 );
+ALTER TABLE processes ADD COLUMN IF NOT EXISTS short_name VARCHAR(50) NULL;
+ALTER TABLE processes ADD COLUMN IF NOT EXISTS external_reference VARCHAR(100) NULL;
+ALTER TABLE processes ADD COLUMN IF NOT EXISTS work_content_unit VARCHAR(50) NULL;
+ALTER TABLE processes ADD COLUMN IF NOT EXISTS planned BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE processes ADD COLUMN IF NOT EXISTS update_by_size BOOLEAN NOT NULL DEFAULT FALSE;
 CREATE INDEX IF NOT EXISTS ix_processes_sequence ON processes (sequence, name);
 
 -- Style versions with independent routing

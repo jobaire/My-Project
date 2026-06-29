@@ -922,6 +922,11 @@ const newStart    = preciseStart(dateStr)
         daily_capacity: capRound,
         order_status: order.status ?? 'confirmed',
         customer_name: order.customer_name || null,
+        product_name:  order.product_name  || null,
+        order_qty:     order.delivery_qty  ?? order.total_qty ?? null,
+        delivery_date: order.delivery_date || null,
+        line_number:   order.line_number   ?? null,
+        color_name:    order.color_name    || null,
       }
       pushHistory([...schedulesRef.current.map(s =>
         pushUpdates[s.id] ? { ...s, planned_start: pushUpdates[s.id], planned_end: null } : s
@@ -957,6 +962,11 @@ const newStart    = preciseStart(dateStr)
         daily_capacity: capRound,
         order_status: line.status ?? 'confirmed',
         customer_name: line.customer_name || null,
+        product_name:  line.product_name  || null,
+        order_qty:     line.delivery_qty  ?? null,
+        delivery_date: line.delivery_date || null,
+        line_number:   line.line_number   ?? null,
+        color_name:    line.color_name    || null,
       }
       pushHistory([...schedulesRef.current.map(s =>
         pushUpdates[s.id] ? { ...s, planned_start: pushUpdates[s.id], planned_end: null } : s
