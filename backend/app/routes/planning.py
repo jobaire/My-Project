@@ -908,7 +908,7 @@ def bulk_save_schedules(payload: BulkSchedulePayload, request: Request, backgrou
         if not existing:
             continue
         _check_unit_permission(db, item.line_id, actor)
-        lc_id = item.learning_curve_id if "learning_curve_id" in (item.model_fields_set or set()) else existing.get("learning_curve_id")
+        lc_id = item.learning_curve_id
         smv = float(existing["smv"])
         # Resolve line params; use item.manpower if provided, otherwise existing, capped at line machines_count
         if item.line_id != existing["line_id"]:
